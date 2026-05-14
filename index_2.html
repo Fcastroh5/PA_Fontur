@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Dashboard Asistencia Técnica · P.A. Fontur · I Trimestre 2026</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --ink:#0f172a;--sky:#0ea5e9;--ocean:#0284c7;--slate:#334155;--mist:#64748b;
+    --emerald:#10b981;--amber:#f59e0b;--rose:#f43f5e;
+    --bg:#f0f4f8;--card:#ffffff;--border:#e2e8f0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+  h1,h2,h3,.serif{font-family:'DM Serif Display',serif}
+
+  /* ─── HEADER ─── */
+  .app-header{background:linear-gradient(135deg,#0c2340 0%,#0ea5e9 100%);color:#fff;padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 20px rgba(14,165,233,.35)}
+  .header-logo{font-size:1.5rem;font-family:'DM Serif Display',serif;letter-spacing:-.5px}
+  .header-sub{font-size:.75rem;opacity:.75;margin-top:.15rem;font-weight:300}
+  .mode-toggle{display:flex;gap:.5rem}
+  .btn{padding:.5rem 1.25rem;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;transition:all .2s}
+  .btn-primary{background:#fff;color:var(--ocean)}
+  .btn-ghost{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)}
+  .btn-ghost:hover{background:rgba(255,255,255,.25)}
+  .btn-primary:hover{background:#e0f2fe}
+  .btn-export{background:var(--emerald);color:#fff;padding:.45rem 1rem;border-radius:8px;border:none;cursor:pointer;font-size:.78rem;font-weight:600;font-family:'DM Sans',sans-serif}
+
+  /* ─── LAYOUT ─── */
+  .container{max-width:1280px;margin:0 auto;padding:1.5rem 1.5rem}
+  .filters-bar{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:flex-end}
+  .filter-group{display:flex;flex-direction:column;gap:.3rem}
+  .filter-group label{font-size:.72rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.5px}
+  .filter-group select{padding:.45rem .9rem;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;color:var(--slate);background:#fff;cursor:pointer;outline:none}
+  .filter-group select:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(14,165,233,.15)}
+  .btn-reset{padding:.45rem 1rem;background:var(--border);color:var(--slate);border:none;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;align-self:flex-end;font-family:'DM Sans',sans-serif}
+
+  /* ─── KPI CARDS ─── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem}
+  .kpi-card{background:var(--card);border-radius:14px;padding:1.25rem 1.5rem;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid var(--border);position:relative;overflow:hidden}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .kpi-card.blue::before{background:linear-gradient(90deg,var(--sky),var(--ocean))}
+  .kpi-card.green::before{background:linear-gradient(90deg,#34d399,var(--emerald))}
+  .kpi-card.amber::before{background:linear-gradient(90deg,#fcd34d,var(--amber))}
+  .kpi-card.rose::before{background:linear-gradient(90deg,#fb7185,var(--rose))}
+  .kpi-label{font-size:.7rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.4rem}
+  .kpi-value{font-family:'DM Serif Display',serif;font-size:2.2rem;color:var(--ink);line-height:1}
+  .kpi-sub{font-size:.72rem;color:var(--mist);margin-top:.3rem}
+
+  /* ─── CHART CARDS ─── */
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem}
+  .chart-card{background:var(--card);border-radius:14px;padding:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid var(--border)}
+  .chart-card.full{grid-column:1/-1}
+  .chart-title{font-size:.9rem;font-weight:700;color:var(--slate);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+  .chart-title span{width:6px;height:6px;border-radius:50%;background:var(--sky);display:inline-block}
+  canvas{max-height:260px}
+
+  /* ─── TABLA ─── */
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:.78rem}
+  thead th{background:var(--bg);color:var(--mist);font-weight:600;text-transform:uppercase;font-size:.68rem;letter-spacing:.4px;padding:.75rem 1rem;text-align:left;border-bottom:2px solid var(--border)}
+  tbody tr{border-bottom:1px solid var(--border)}
+  tbody tr:hover{background:#f8fafc}
+  tbody td{padding:.7rem 1rem;color:var(--slate)}
+  .badge{display:inline-block;padding:.2rem .6rem;border-radius:99px;font-size:.68rem;font-weight:600}
+  .badge-green{background:#d1fae5;color:#065f46}
+  .badge-amber{background:#fef3c7;color:#92400e}
+  .badge-rose{background:#ffe4e6;color:#9f1239}
+
+  /* ─── PRINT / PRESENTATION ─── */
+  #pres-view{display:none}
+  .pres-cover{background:linear-gradient(135deg,#0c2340,#0ea5e9);color:#fff;padding:3rem 2.5rem;border-radius:18px;margin-bottom:2rem;position:relative;overflow:hidden}
+  .pres-cover::after{content:'';position:absolute;right:-60px;top:-60px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.06)}
+  .pres-cover-title{font-family:'DM Serif Display',serif;font-size:2rem;margin-bottom:.5rem}
+  .pres-cover-sub{opacity:.8;font-size:.95rem}
+  .pres-section{margin-bottom:2rem;page-break-inside:avoid}
+  .pres-section h2{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--ocean);border-bottom:2px solid var(--border);padding-bottom:.5rem;margin-bottom:1rem}
+  .pres-insight{background:#f0f9ff;border-left:4px solid var(--sky);padding:1rem 1.25rem;border-radius:0 10px 10px 0;margin-top:.75rem;font-size:.84rem;color:var(--slate);line-height:1.6}
+  .pres-insight strong{color:var(--ocean)}
+  .pres-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+  .pres-kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;text-align:center}
+  .pres-kpi .val{font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--ocean)}
+  .pres-kpi .lbl{font-size:.7rem;color:var(--mist);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-top:.2rem}
+  .pres-chart-row{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+  .pres-chart-wrap{page-break-inside:avoid}
+  .pres-chart-wrap canvas{max-height:220px}
+
+  @media print{
+    .no-print,.app-header,.filters-bar,.btn{display:none!important}
+    #dash-view{display:none!important}
+    #pres-view{display:block!important}
+    body{background:#fff}
+    .container{padding:.5rem}
+    .pres-cover{border-radius:0}
+    .chart-card,.pres-section{page-break-inside:avoid}
+  }
+
+  @media(max-width:768px){
+    .charts-grid{grid-template-columns:1fr}
+    .pres-chart-row{grid-template-columns:1fr}
+    .pres-kpi-row{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header no-print">
+  <div>
+    <div class="header-logo">P.A. Fontur · Encuesta de Satisfacción</div>
+    <div class="header-sub">Asistencia Técnica · I Trimestre 2026</div>
+  </div>
+  <div class="mode-toggle">
+    <button class="btn btn-primary" id="btnDash" onclick="setMode('dash')">📊 Dashboard</button>
+    <button class="btn btn-ghost" id="btnPres" onclick="setMode('pres')">📄 Informe Ejecutivo</button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════ DASHBOARD ══════════════════════════════════ -->
+<div id="dash-view">
+<div class="container">
+
+  <!-- Filtros -->
+  <div class="filters-bar no-print">
+    <div class="filter-group">
+      <label>Tipo de Proponente</label>
+      <select id="fTipo" onchange="applyFilters()">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Línea Estratégica</label>
+      <select id="fLinea" onchange="applyFilters()">
+        <option value="">Todas</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Momento</label>
+      <select id="fMomento" onchange="applyFilters()">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <button class="btn-reset no-print" onclick="resetFilters()">↺ Limpiar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Total Encuestas</div>
+      <div class="kpi-value" id="kTotal">—</div>
+      <div class="kpi-sub">respuestas procesadas</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Satisfacción Promedio</div>
+      <div class="kpi-value" id="kSat">—</div>
+      <div class="kpi-sub">sobre 5.0</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">Duración Promedio</div>
+      <div class="kpi-value" id="kDur">—</div>
+      <div class="kpi-sub">minutos por encuesta</div>
+    </div>
+    <div class="kpi-card rose">
+      <div class="kpi-label">NPS Promedio</div>
+      <div class="kpi-value" id="kNps">—</div>
+      <div class="kpi-sub">probabilidad de recomendar (0–10)</div>
+    </div>
+  </div>
+
+  <!-- Charts row 1 -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Momento del Acompañamiento</div>
+      <canvas id="cMomento"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Grado de Satisfacción (1–5)</div>
+      <canvas id="cSat"></canvas>
+    </div>
+    <div class="chart-card full">
+      <div class="chart-title"><span></span>Promedio de Atributos del Acompañamiento</div>
+      <canvas id="cAtributos"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Utilidad percibida</div>
+      <canvas id="cUtilidad"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Distribución por Tipo de Proponente</div>
+      <canvas id="cTipo"></canvas>
+    </div>
+  </div>
+
+  <!-- Tabla detalle -->
+  <div class="chart-card full">
+    <div class="chart-title"><span></span>Detalle por Encuestado</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Proponente</th><th>Tipo</th><th>Línea</th><th>Satisfacción</th><th>NPS</th><th>Profesional</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /dash-view -->
+
+<!-- ══════════════════════════════════ PRESENTACIÓN ══════════════════════════════════ -->
+<div id="pres-view">
+<div class="container">
+
+  <div class="pres-cover">
+    <div style="font-size:.75rem;opacity:.7;text-transform:uppercase;letter-spacing:1px;margin-bottom:.75rem">Informe Ejecutivo · Confidencial</div>
+    <div class="pres-cover-title">Encuesta de Satisfacción<br>Asistencia Técnica</div>
+    <div class="pres-cover-sub" style="margin-top:.5rem">P.A. Fontur · I Trimestre 2026 (Enero – Febrero)</div>
+    <div style="margin-top:2rem;font-size:.8rem;opacity:.65">Preparado por: Oficina de Planeación Estratégica · Fondo Nacional de Turismo</div>
+    <div style="position:absolute;right:2rem;top:50%;transform:translateY(-50%);font-size:4rem;opacity:.12">🏛</div>
+  </div>
+
+  <!-- Botón exportar PDF -->
+  <div style="text-align:right;margin-bottom:1rem" class="no-print">
+    <button class="btn-export" onclick="window.print()">⬇ Exportar PDF</button>
+  </div>
+
+  <!-- KPIs presentación -->
+  <div class="pres-section">
+    <h2>Indicadores Clave de Desempeño</h2>
+    <div class="pres-kpi-row">
+      <div class="pres-kpi"><div class="val" id="pkTotal">—</div><div class="lbl">Encuestas</div></div>
+      <div class="pres-kpi"><div class="val" id="pkSat">—</div><div class="lbl">Satisfacción / 5</div></div>
+      <div class="pres-kpi"><div class="val" id="pkDur">—</div><div class="lbl">Min. Promedio</div></div>
+      <div class="pres-kpi"><div class="val" id="pkNps">—</div><div class="lbl">NPS / 10</div></div>
+    </div>
+  </div>
+
+  <!-- Sección 1 -->
+  <div class="pres-section">
+    <h2>1 · Distribución del Acompañamiento</h2>
+    <div class="pres-chart-row">
+      <div class="pres-chart-wrap">
+        <div style="font-size:.8rem;font-weight:600;color:var(--slate);margin-bottom:.5rem">Momento del acompañamiento</div>
+        <canvas id="pMomento"></canvas>
+      </div>
+      <div class="pres-chart-wrap">
+        <div style="font-size:.8rem;font-weight:600;color:var(--slate);margin-bottom:.5rem">Tipo de proponente</div>
+        <canvas id="pTipo"></canvas>
+      </div>
+    </div>
+    <div class="pres-insight" id="insight1"></div>
+  </div>
+
+  <!-- Sección 2 -->
+  <div class="pres-section">
+    <h2>2 · Satisfacción y Atributos de Calidad</h2>
+    <div class="pres-chart-wrap">
+      <canvas id="pAtributos" style="max-height:200px"></canvas>
+    </div>
+    <div class="pres-insight" id="insight2"></div>
+  </div>
+
+  <!-- Sección 3 -->
+  <div class="pres-section">
+    <h2>3 · Índice de Recomendación (NPS)</h2>
+    <div class="pres-chart-wrap" style="max-width:420px">
+      <canvas id="pNPS" style="max-height:180px"></canvas>
+    </div>
+    <div class="pres-insight" id="insight3"></div>
+  </div>
+
+  <!-- Footer -->
+  <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);font-size:.7rem;color:var(--mist);text-align:center">
+    Documento de uso interno · P.A. Fontur · Generado a partir de datos del I Trimestre 2026 · 17 respuestas procesadas
+  </div>
+
+</div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   RAW DATA — extraído 100% del archivo .xlsx
+   ════════════════════════════════════════ */
+const RAW = [
+  {"id":142,"duracion_min":2.2,"momento":"Después de radicado el proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":1,"tipo_proponente":"Gremio","linea_estrategica":"Mejoramiento de la competitividad turística","proponente":"FENALCO RISARALDA","profesional":"Katherine Alfonso","areas_mejora":"Mayor claridad en la información","oportunidad":1,"claridad":1,"conocimiento":1,"disponibilidad":1,"amabilidad":1},
+  {"id":143,"duracion_min":1.9,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"Entidades Territoriales","linea_estrategica":"Fortalecimiento de la promoción y el mercadeo turístico","proponente":"Alcaldía municipal de Soledad","profesional":"Jose Nicolás García Oros","areas_mejora":"Mayor claridad en la información","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":144,"duracion_min":17.3,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Útil","nps":8,"tipo_proponente":"Entidades Territoriales","linea_estrategica":"Mejoramiento de la competitividad turística","proponente":"Soledad","profesional":"Jose Nicolás García Oros","areas_mejora":"Mayor claridad; Mayor personalización; Mayor amabilidad","oportunidad":4,"claridad":4,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":145,"duracion_min":3.4,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"N/A","linea_estrategica":"N/A","proponente":"N/A","profesional":"N/A","areas_mejora":"Capacitación más detallada sobre requisitos","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":146,"duracion_min":2.0,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"Aportantes","linea_estrategica":"Mejoramiento de la competitividad turística / Fortalecimiento del mercadeo","proponente":"Makroeventos Colombia Ltda","profesional":"Adriana Lozano Andrade","areas_mejora":"Capacitación más detallada sobre requisitos","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":147,"duracion_min":2.0,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"Entidades Territoriales","linea_estrategica":"Mejoramiento de la competitividad turística","proponente":"Alcaldía de Nuquí","profesional":"José Nicolás García Oros","areas_mejora":"Mayor claridad en la información","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":148,"duracion_min":2.8,"momento":"Con la devolución del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"Entidades Territoriales","linea_estrategica":"Mejoramiento de la competitividad turística","proponente":"Municipio de San Andrés de Tumaco","profesional":"N/A","areas_mejora":"Capacitación más detallada sobre requisitos","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":149,"duracion_min":3.5,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"N/A","linea_estrategica":"N/A","proponente":"N/A","profesional":"N/A","areas_mejora":"Capacitación más detallada sobre requisitos","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":150,"duracion_min":1.2,"momento":"Con la devolución del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"Entidades Territoriales","linea_estrategica":"Mejoramiento de la competitividad turística","proponente":"Municipio de San Andrés de Tumaco","profesional":"Laura Villamizar","areas_mejora":"Capacitación más detallada sobre requisitos","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":151,"duracion_min":6.7,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"Entidades Territoriales","linea_estrategica":"Fortalecimiento de la promoción y el mercadeo turístico","proponente":"Municipio de Santa Lucía, Atlántico","profesional":"Sebastián Rojas","areas_mejora":"Ninguna","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":152,"duracion_min":5.2,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"Gremio","linea_estrategica":"Mejoramiento de la competitividad turística","proponente":"Fenalco Bolívar","profesional":"Jose García Oros","areas_mejora":"Ninguna – reunión de apertura productiva","oportunidad":1,"claridad":1,"conocimiento":1,"disponibilidad":1,"amabilidad":1},
+  {"id":153,"duracion_min":2.1,"momento":"Después de radicado el proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"Entidades Territoriales","linea_estrategica":"Fortalecimiento de la promoción y el mercadeo turístico","proponente":"Gobernación del Valle del Cauca","profesional":"Diana Catalina Sabogal Navas","areas_mejora":"Mejora en los tiempos de respuesta","oportunidad":3,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":154,"duracion_min":6.4,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Nada útil","nps":10,"tipo_proponente":"Ministerio de Comercio, Industria y Turismo","linea_estrategica":"Mejoramiento de la competitividad turística","proponente":"Registro de prueba","profesional":"Registro de prueba","areas_mejora":"Capacitación más detallada; Mayor amabilidad","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":155,"duracion_min":7.3,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"Entidades Territoriales","linea_estrategica":"Mejoramiento de la competitividad turística","proponente":"Municipio de Yondó, Antioquia","profesional":"Mónica Liliana Forero Martínez","areas_mejora":"Ampliar espacio de atención","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":156,"duracion_min":8.9,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Útil","nps":10,"tipo_proponente":"Entidades Territoriales","linea_estrategica":"Mejoramiento de la competitividad turística","proponente":"Yondó, Antioquia","profesional":"Mónica Liliana Forero","areas_mejora":"Ampliar mesas de atención","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":157,"duracion_min":71.7,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Útil","nps":9,"tipo_proponente":"Gremio","linea_estrategica":"Fortalecimiento de la promoción y el mercadeo turístico","proponente":"Fenalco Bolívar","profesional":"Daniela Suárez","areas_mejora":"Sin observación","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5},
+  {"id":158,"duracion_min":3.1,"momento":"Antes de la radicación del proyecto","satisfaccion":5,"utilidad":"Muy útil","nps":10,"tipo_proponente":"Entidades Territoriales","linea_estrategica":"Mejoramiento de la competitividad turística","proponente":"Gobernación del Valle del Cauca","profesional":"José Nicolás García Oros","areas_mejora":"Mejora en tiempos de respuesta","oportunidad":5,"claridad":5,"conocimiento":5,"disponibilidad":5,"amabilidad":5}
+];
+
+/* ─── chart instances ─── */
+const charts = {};
+let currentMode = 'dash';
+
+/* ─── populate filters ─── */
+function unique(field){
+  return [...new Set(RAW.map(r=>r[field]).filter(v=>v&&v!=='N/A'))].sort();
+}
+function populateSelect(id, values){
+  const sel = document.getElementById(id);
+  values.forEach(v=>{
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    sel.appendChild(o);
+  });
+}
+populateSelect('fTipo', unique('tipo_proponente'));
+populateSelect('fLinea', unique('linea_estrategica'));
+populateSelect('fMomento', unique('momento'));
+
+/* ─── filter ─── */
+function getFiltered(){
+  const tipo = document.getElementById('fTipo').value;
+  const linea = document.getElementById('fLinea').value;
+  const momento = document.getElementById('fMomento').value;
+  return RAW.filter(r=>{
+    if(tipo && r.tipo_proponente !== tipo) return false;
+    if(linea && r.linea_estrategica !== linea) return false;
+    if(momento && r.momento !== momento) return false;
+    return true;
+  });
+}
+function resetFilters(){
+  ['fTipo','fLinea','fMomento'].forEach(id=>document.getElementById(id).value='');
+  applyFilters();
+}
+
+/* ─── color palette ─── */
+const PALETTE = ['#0ea5e9','#10b981','#f59e0b','#6366f1','#f43f5e','#a855f7','#14b8a6','#fb923c'];
+const alpha = (hex,a)=>hex+Math.round(a*255).toString(16).padStart(2,'0');
+
+/* ─── chart builder ─── */
+function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+function buildDonut(id, labels, data, opts={}){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels,
+      datasets:[{data, backgroundColor: PALETTE.slice(0,data.length), borderWidth:2, borderColor:'#fff', hoverOffset:6}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{
+        legend:{position:'bottom', labels:{font:{family:'DM Sans',size:11}, padding:12}},
+        datalabels: opts.datalabels ? {
+          color:'#fff', font:{weight:'bold',size:11},
+          formatter:(v,ctx)=>{
+            const sum = ctx.dataset.data.reduce((a,b)=>a+b,0);
+            return sum>0 ? Math.round(v/sum*100)+'%' : '';
+          }
+        } : {display:false}
+      }
+    },
+    plugins: opts.datalabels ? [ChartDataLabels] : []
+  });
+}
+
+function buildBar(id, labels, data, opts={}){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type: opts.horizontal ? 'bar' : 'bar',
+    data:{
+      labels,
+      datasets:[{
+        label: opts.label||'',
+        data,
+        backgroundColor: opts.colors || PALETTE.slice(0,data.length).map(c=>alpha(c,'cc')),
+        borderRadius:6, borderWidth:0
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      indexAxis: opts.horizontal ? 'y' : 'x',
+      scales:{
+        x:{grid:{color:'#f1f5f9'}, ticks:{font:{family:'DM Sans',size:11}}},
+        y:{grid:{color:'#f1f5f9'}, ticks:{font:{family:'DM Sans',size:11}}, beginAtZero:true, max: opts.maxY||undefined}
+      },
+      plugins:{
+        legend:{display:!!opts.label, labels:{font:{family:'DM Sans',size:11}}},
+        datalabels: opts.datalabels ? {
+          anchor: opts.horizontal ? 'end' : 'end',
+          align: opts.horizontal ? 'right' : 'top',
+          color:'#334155', font:{weight:'600',size:10, family:'DM Sans'},
+          formatter: v => opts.isAvg ? v.toFixed(2) : v
+        } : {display:false}
+      }
+    },
+    plugins: opts.datalabels ? [ChartDataLabels] : []
+  });
+}
+
+/* ─── counts helper ─── */
+function countBy(arr, field){
+  const m={};
+  arr.forEach(r=>{ const k=r[field]||'N/A'; m[k]=(m[k]||0)+1; });
+  return m;
+}
+function avg(arr, field){
+  const vals = arr.map(r=>r[field]).filter(v=>v!=null);
+  return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+}
+
+/* ─── render dashboard ─── */
+function renderDash(data){
+  const n = data.length;
+  const satAvg = avg(data,'satisfaccion');
+  const durAvg = avg(data,'duracion_min');
+  const npsAvg = avg(data,'nps');
+
+  document.getElementById('kTotal').textContent = n;
+  document.getElementById('kSat').textContent = n>0 ? satAvg.toFixed(2) : '—';
+  document.getElementById('kDur').textContent = n>0 ? durAvg.toFixed(1) : '—';
+  document.getElementById('kNps').textContent = n>0 ? npsAvg.toFixed(1) : '—';
+
+  /* Momento */
+  const mom = countBy(data,'momento');
+  buildDonut('cMomento', Object.keys(mom), Object.values(mom));
+
+  /* Satisfacción dist */
+  const satDist={1:0,2:0,3:0,4:0,5:0};
+  data.forEach(r=>{ if(r.satisfaccion) satDist[r.satisfaccion]++; });
+  buildBar('cSat',['1','2','3','4','5'],[satDist[1],satDist[2],satDist[3],satDist[4],satDist[5]],
+    {colors:['#f43f5e','#fb923c','#f59e0b','#34d399','#10b981']});
+
+  /* Atributos */
+  const attrs = ['oportunidad','claridad','conocimiento','disponibilidad','amabilidad'];
+  const labels = ['Oportunidad','Claridad','Conocimiento','Disponibilidad','Amabilidad'];
+  const avgs = attrs.map(a=>+avg(data,a).toFixed(2));
+  buildBar('cAtributos', labels, avgs, {horizontal:true, maxY:5, label:'Promedio (1–5)', colors: avgs.map(()=>'#0ea5e9cc'), isAvg:true});
+
+  /* Utilidad */
+  const util = countBy(data,'utilidad');
+  buildDonut('cUtilidad', Object.keys(util), Object.values(util));
+
+  /* Tipo proponente */
+  const tipo = countBy(data,'tipo_proponente');
+  buildDonut('cTipo', Object.keys(tipo), Object.values(tipo));
+
+  /* Tabla */
+  const tb = document.getElementById('tableBody');
+  tb.innerHTML = '';
+  data.forEach(r=>{
+    const npsColor = r.nps>=9?'badge-green':r.nps>=7?'badge-amber':'badge-rose';
+    tb.innerHTML += `<tr>
+      <td>#${r.id}</td>
+      <td>${r.proponente}</td>
+      <td>${r.tipo_proponente}</td>
+      <td style="max-width:200px;white-space:normal">${r.linea_estrategica}</td>
+      <td><span class="badge badge-green">${r.satisfaccion}/5</span></td>
+      <td><span class="badge ${npsColor}">${r.nps}/10</span></td>
+      <td>${r.profesional}</td>
+    </tr>`;
+  });
+}
+
+/* ─── render presentación ─── */
+function renderPres(){
+  const data = RAW;
+  const n = data.length;
+  const satAvg = avg(data,'satisfaccion');
+  const durAvg = avg(data,'duracion_min');
+  const npsAvg = avg(data,'nps');
+
+  document.getElementById('pkTotal').textContent = n;
+  document.getElementById('pkSat').textContent = satAvg.toFixed(2);
+  document.getElementById('pkDur').textContent = durAvg.toFixed(1);
+  document.getElementById('pkNps').textContent = npsAvg.toFixed(1);
+
+  /* Momento */
+  const mom = countBy(data,'momento');
+  buildDonut('pMomento', Object.keys(mom), Object.values(mom), {datalabels:true});
+
+  /* Tipo */
+  const tipo = countBy(data,'tipo_proponente');
+  buildDonut('pTipo', Object.keys(tipo), Object.values(tipo), {datalabels:true});
+
+  /* Atributos */
+  const attrs = ['oportunidad','claridad','conocimiento','disponibilidad','amabilidad'];
+  const labels = ['Oportunidad','Claridad','Conocimiento','Disponibilidad','Amabilidad'];
+  const avgs2 = attrs.map(a=>+avg(data,a).toFixed(2));
+  buildBar('pAtributos', labels, avgs2, {horizontal:false, maxY:5, label:'Promedio', colors: avgs2.map(()=>'#0ea5e9'), isAvg:true, datalabels:true});
+
+  /* NPS dist */
+  const npsGroups = {'Detractores (0-6)':0,'Pasivos (7-8)':0,'Promotores (9-10)':0};
+  data.forEach(r=>{
+    if(r.nps<=6) npsGroups['Detractores (0-6)']++;
+    else if(r.nps<=8) npsGroups['Pasivos (7-8)']++;
+    else npsGroups['Promotores (9-10)']++;
+  });
+  buildDonut('pNPS', Object.keys(npsGroups), Object.values(npsGroups), {datalabels:true});
+
+  /* Insights */
+  const momEntries = Object.entries(mom).sort((a,b)=>b[1]-a[1]);
+  const topMom = momEntries[0];
+  const pct = (v,t)=>Math.round(v/t*100);
+  const lowestAttr = attrs[avgs2.indexOf(Math.min(...avgs2))];
+  const detractores = npsGroups['Detractores (0-6)'];
+  const promotores = npsGroups['Promotores (9-10)'];
+
+  document.getElementById('insight1').innerHTML = `
+    <strong>Conclusión 1:</strong> El <strong>${pct(topMom[1],n)}% (${topMom[1]} de ${n})</strong> de los acompañamientos se realizó en la etapa "<em>${topMom[0]}</em>", lo que indica una orientación predominantemente preventiva y de asesoría pre-radicación. Las etapas de devolución y post-radicación representan el <strong>${pct(n-topMom[1],n)}%</strong> restante, sugiriendo oportunidades de refuerzo en fases tardías del proceso.<br><br>
+    <strong>Conclusión 2:</strong> Las <strong>Entidades Territoriales</strong> son el segmento más representado con <strong>${tipo['Entidades Territoriales']||0} respuestas (${pct(tipo['Entidades Territoriales']||0,n)}%)</strong>, seguido de <strong>Gremios</strong> con ${tipo['Gremio']||0}. Esto refleja que el programa atiende principalmente al sector público subnacional.`;
+
+  document.getElementById('insight2').innerHTML = `
+    <strong>Conclusión 3:</strong> El atributo con menor promedio es <strong>"${labels[attrs.indexOf(lowestAttr)]}"</strong> con <strong>${Math.min(...avgs2).toFixed(2)}/5</strong>, impulsado por dos registros con puntuación de 1/5. Los demás atributos alcanzan promedios superiores a <strong>4.47/5</strong>, con "<em>Conocimiento técnico</em>", "<em>Disponibilidad</em>" y "<em>Amabilidad</em>" empatando en <strong>4.53/5</strong>, lo que evidencia una percepción altamente positiva del equipo profesional.`;
+
+  document.getElementById('insight3').innerHTML = `
+    <strong>Conclusión 4:</strong> El <strong>${pct(promotores,n)}% (${promotores} encuestados)</strong> son <em>Promotores</em> (NPS 9–10), reflejando un índice de fidelidad y recomendación muy alto. Solo <strong>${detractores} encuestado(s) (${pct(detractores,n)}%)</strong> califican como Detractor, correspondiente a un caso que reportó satisfacción general alta (5/5) pero atributos técnicos de 1/5, lo que sugiere una posible inconsistencia en la respuesta o un caso de insatisfacción puntual que merece seguimiento.`;
+}
+
+/* ─── mode toggle ─── */
+function setMode(mode){
+  currentMode = mode;
+  const dash = document.getElementById('dash-view');
+  const pres = document.getElementById('pres-view');
+  const b1 = document.getElementById('btnDash');
+  const b2 = document.getElementById('btnPres');
+
+  if(mode==='dash'){
+    dash.style.display='block'; pres.style.display='none';
+    b1.className='btn btn-primary'; b2.className='btn btn-ghost';
+    applyFilters();
+  } else {
+    dash.style.display='none'; pres.style.display='block';
+    b1.className='btn btn-ghost'; b2.className='btn btn-primary';
+    renderPres();
+  }
+}
+
+function applyFilters(){
+  const data = getFiltered();
+  renderDash(data);
+}
+
+/* ─── init ─── */
+window.addEventListener('DOMContentLoaded', ()=>{
+  Chart.register(ChartDataLabels);
+  setMode('dash');
+});
+</script>
+</body>
+</html>
